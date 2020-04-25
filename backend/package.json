@@ -17,7 +17,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "cd .. && git-format-staged -f 'prettier --stdin --stdin-filepath \"{}\"' '*.js' '*.ts'"
+      "pre-commit": "cd .. && git-format-staged -f 'prettier --stdin --stdin-filepath \"{}\"' 'backend/*.js' '*.ts'"
     }
   }
 }
