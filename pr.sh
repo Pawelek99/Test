@@ -12,4 +12,4 @@ hub pull-request --copy -l $label -m "$issueName" -m "Close #$issueId" || exit 1
 
 echo "Copied the pull request link to the clipboard"
 
-[ $1 == -m ] || [ $1 == --master ] && git checkout master
+[ "$1" == -m ] || [ "$1" == --master ] && git checkout master

@@ -19,8 +19,15 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
     - name: Install dependencies
-      run: |
-        yarn install
+      run: yarn install
     - name: Run tests
+      run: yarn test
+    - name: Run formatter
+      run: yarn format:check
+    - name: hub example
+      shell: bash
       run: |
-        yarn test
+        curl -fsSL https://github.com/github/hub/raw/master/script/get | bash -s 2.14.1
+        bin/hub pr list  # list pull requests in the current repo
+      env:
+        GITHUB_TOKEN: ${{ secrets.TOKEN }}
