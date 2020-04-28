@@ -28,6 +28,6 @@ jobs:
       shell: bash
       run: |
         curl -fsSL https://github.com/github/hub/raw/master/script/get | bash -s 2.14.1
-        hub issue show -f "%t" 7
+        hub issue show -f "%t" 7 $(git rev-parse --abbrev-ref HEAD | rev | cut -d '/' -f2 | rev)
       env:
         GITHUB_TOKEN: ${{ secrets.TOKEN }}
