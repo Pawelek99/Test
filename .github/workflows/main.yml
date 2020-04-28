@@ -24,10 +24,11 @@ jobs:
       run: yarn test
     - name: Run formatter
       run: yarn format:check
-    - name: hub example
+    - name: Run name check
       shell: bash
       run: |
         curl -fsSL https://github.com/github/hub/raw/master/script/get | bash -s 2.14.1
-        hub issue show -f "%t" 7 $(git rev-parse --abbrev-ref HEAD | rev | cut -d '/' -f2 | rev)
+        hub issue show -f "%t" $(git rev-parse --abbrev-ref HEAD | rev | cut -d '/' -f2 | rev) >/dev/null 2>/dev/null || ( echo 'Issue with id of the branch does not exist' && exit 1 )
+        [[ $(git rev-parse --abbrev-ref HEAD) =~ ^([a-z]+-)+i[0-9]+$ ]] || ( echo 'Branch is named not correctly' && exit 1 )
       env:
         GITHUB_TOKEN: ${{ secrets.TOKEN }}
