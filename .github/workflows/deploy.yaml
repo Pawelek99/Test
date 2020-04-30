@@ -27,4 +27,4 @@ jobs:
         host: pointlessapps.tech
         username: rzeAssistant
         password: ${{ secrets.SFTP_PASSWORD }}
-        script: la -la
+        script: pwd && whoami
