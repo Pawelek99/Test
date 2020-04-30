@@ -22,9 +22,9 @@ jobs:
         npm install
         npm run build --if-present
     - name: Deploy project
-      uses: Automattic/FTP-Deploy-Action@3.0.1
+      uses: appleboy/ssh-action@master
       with:
-        ftp-server: sftp://pointlessapps.tech
-        ftp-username: rzeAssistant
-        ftp-password: ${{ secrets.SFTP_PASSWORD }}
-        known-hosts: ${{ secrets.SSH_KEY }}
+        host: pointlessapps.tech
+        username: rzeAssistant
+        password: ${{ secrets.SFTP_PASSWORD }}
+        script: la -la
