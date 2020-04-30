@@ -21,10 +21,10 @@ jobs:
       uses: appleboy/ssh-action@master
       with:
         host: pointlessapps.tech
-        username: rzeAssistant
-        password: ${{ secrets.SFTP_PASSWORD }}
+        username: root
+        password: Pipistrelus_3524
         script: |
-          cd projekt &&
+          cd /home/rzeAssistant/projekt &&
           git stash &&
           cd backend &&
           npm install && npm run build
