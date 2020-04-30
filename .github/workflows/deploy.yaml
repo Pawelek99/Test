@@ -25,7 +25,7 @@ jobs:
       uses: wlixcc/SFTP-Deploy-Action@v1.0
       with:
         username: rzeAssistant
-        server: sftp://pointlessapps.tech
+        server: pointlessapps.tech
         private_key: ${{ secrets.SSH_KEY }} 
         local_path: './backend/dist*'
         remote_path: '/home/rzeAssistant'
