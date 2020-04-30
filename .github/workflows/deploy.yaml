@@ -21,11 +21,11 @@ jobs:
       run: |
         npm install
         npm run build --if-present
-    - name: FTP-Deploy-Action
-      uses: SamKirkland/FTP-Deploy-Action@3.0.0
+    - name: Deploy project
+      uses: wlixcc/SFTP-Deploy-Action@v1.0
       with:
-        ftp-server: sftp://pointlessapps.tech
-        ftp-username: rzeAsistant
-        ftp-password: rzeAsistant
-        git-ftp-args: --insecure --dry-run --active --disable-espv
-        local-dir: dist
+        username: rzeAssistant
+        server: sftp://pointlessapps.tech
+        private_key: ${{ secrets.SSH_KEY }} 
+        local_path: './backend/dist*'
+        remote_path: '/home/rzeAssistant'
