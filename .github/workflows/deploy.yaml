@@ -26,6 +26,6 @@ jobs:
       with:
         username: rzeAssistant
         server: pointlessapps.tech
-        private_key: ${{ secrets.SSH_KEY }} 
+        password: rzeAssistant
         local_path: './backend/dist*'
         remote_path: '/home/rzeAssistant'
