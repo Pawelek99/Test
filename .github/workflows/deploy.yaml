@@ -26,6 +26,6 @@ jobs:
       with:
         ftp-server: sftp://pointlessapps.tech
         ftp-username: rzeAsistant
-        ftp-password: ${{ secrets.SFTP_PASSWORD }}
+        ftp-password: rzeAsistant
         git-ftp-args: --insecure --dry-run
         local-dir: dist
