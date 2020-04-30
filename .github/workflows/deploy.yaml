@@ -28,4 +28,4 @@ jobs:
           git checkout production || : &&
           git pull &&
           cd backend &&
-          yarn build
+          npm install && npm build
