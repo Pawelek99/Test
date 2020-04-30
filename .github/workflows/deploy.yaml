@@ -25,7 +25,6 @@ jobs:
         password: ${{ secrets.SFTP_PASSWORD }}
         script: |
           cd projekt &&
-          git checkout production || : &&
           git pull &&
           cd backend &&
-          npm install && npm build
+          npm install && npm run build
