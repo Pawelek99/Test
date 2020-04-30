@@ -4,10 +4,20 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "format": "prettier --write \"**/*.js\"",
+    "format:check": "prettier --check \"**/*.js\""
   },
-  "dependencies": {
+  "devDependencies": {
     "@types/jest": "^25.2.1",
-    "jest": "^25.4.0"
+    "git-format-staged": "^2.1.0",
+    "husky": "^4.2.5",
+    "jest": "^25.4.0",
+    "prettier": "^2.0.5"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "cd .. && git-format-staged -f 'prettier --stdin --stdin-filepath \"{}\"' 'backend/*.js' '*.ts'"
+    }
   }
 }
