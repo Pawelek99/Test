@@ -17,14 +17,16 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: '12.x'
+    - name: Build project
+      run: |
+        npm install && npm build
     - name: Deploy project
       uses: appleboy/ssh-action@master
       with:
         host: pointlessapps.tech
-        username: root
-        password: Pipistrelus_3524
+        username: rzeAssistant
+        password: ${{ secrets.SFTP_PASSWORD }}
         script: |
-          cd /home/rzeAssistant/projekt &&
-          git stash &&
-          cd backend &&
-          npm install && npm run build
+          cd projekt &&
+          git checkout builds || : &&
+          git pull

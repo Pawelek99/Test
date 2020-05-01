@@ -8,6 +8,11 @@ label=$(hub issue show -f "%L" $issueId)
 
 echo "Creating pull request for issue #$issueId with name $issueName, labeled: $label"
 
+if [ "$1" == -d ] || [ "$1" == --draft ]; then
+    hub pull-request --copy -l $label -m "$issueName" -m "Close #$issueId" -d || exit 1
+    exit 0
+fi
+
 hub pull-request --copy -l $label -m "$issueName" -m "Close #$issueId" || exit 1
 
 echo "Copied the pull request link to the clipboard"

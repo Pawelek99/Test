@@ -38,3 +38,7 @@ branchName="$output-i$issueNumber"
 
 git checkout -b $branchName
 git push --set-upstream origin $branchName
+
+link=$(hub browse -u)
+description="Associated branch: [$branchName]($link)"
+hub issue update "$issueNumber" -m "$1" -m "$description"
