@@ -19,7 +19,7 @@ while [[ $# -gt 0 ]]; do
     echo "  -b, --bug                       - sets 'bug' label to the newly created issue"
     echo "  -c, --custom <label>            - sets the given label to the newly created issue. Label have to exist."
     echo "  --from <issue number>           - allows to choose a base branch by selecting base issue"
-    echo "  -d, --dry                       - allows to create an issue without switch to the created branch"
+    echo "  -d, --detached                  - allows to create an issue without switching to the created branch"
     echo "  -o, --open <issue numer>        - changes branch to the one associated with the given issue and assignes it to you"
     exit 0
     ;;
@@ -37,8 +37,8 @@ while [[ $# -gt 0 ]]; do
     shift # past argument
     shift # past value
     ;;
-  -d | --dry)
-    dry=1
+  -d | --detached)
+    detached=1
     shift # past argument
     ;;
   -o | --open)
@@ -99,7 +99,7 @@ fi
 
 echo "Creating issue with name: '$1', labeled: $label"
 
-[[ -n $dry ]] || {
+[[ -n $detached ]] || {
   assignee=$(hub api user | cut -d ',' -f1 | cut -d ':' -f2)
   assignee=" -a ${assignee//\"/' '}"
 
@@ -132,7 +132,7 @@ branchName="$output-i$issueNumber"
   )
 }
 
-[[ -n $dry ]] && git push origin origin/master:refs/heads/$branchName >/dev/null || {
+[[ -n $detached ]] && git push origin origin/master:refs/heads/$branchName >/dev/null || {
   git branch -f $branchName $startingBranch
   git stash
   git checkout -f $branchName
