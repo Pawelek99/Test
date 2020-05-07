@@ -76,18 +76,37 @@ hub --version >/dev/null || {
   exit 1
 }
 
+function slugify() {
+  local output=$(echo "$1" | awk '{print tolower($0)}')
+  output=$(echo "$output" | sed -r "s/'//g" | sed -r "s/[^a-zA-Z0-9-]+/-/g" | sed -r 's/-+/-/g' | sed -r 's/^-+|-+$//g')
+  echo $output
+}
+
+function getUser() {
+  echo $(hub api user | grep -oP '(?<="login":")\w+')
+}
+
+function prepareLabels() {
+  IFS='.' read -r -a labels <<< $(hub issue labels | sed ':a;N;$!ba;s/\n/,./g')
+}
+
+function checkoutBranch() {
+  git stash
+  git checkout --track origin/$1
+  git stash pop
+}
+
 [[ -n $open ]] && {
   echo "Checking out branch associated with the selected issue"
-  branch=$(hub issue show -f %b $open | cut -d "[" -f2 | cut -d "]" -f1)
-  git stash
-  git checkout --track origin/$branch
-  git stash pop
+
+  branch=$(slugify "$(hub issue show -f %t $open)")-i$open
+  checkoutBranch $branch
 
   echo "Assigning this issue to you"
 
-  assignee=$(hub api user | cut -d ',' -f1 | cut -d ':' -f2)
+  assignee=$(getUser)
+  hub issue update $open -a "$assignee"
 
-  hub issue update $open -a $assignee
   exit 0
 }
 
@@ -97,10 +116,9 @@ hub --version >/dev/null || {
 }
 
 if [[ -n $custom ]]; then
-  IFS=' ' read -r -a labels <<<$(hub issue labels | sed ':a;N;$!ba;s/\n/ /g')
-  (for e in "${labels[@]}"; do [[ $custom == $e ]] && exit 0; done) || {
-    array=$(printf ", %s" "${labels[@]}")
-    echo "You have to provide a label from: [${array[@]:2}]"
+  prepareLabels
+  (for e in "${labels[@]}"; do [[ $custom == ${e//,} ]] && exit 0; done) || {
+    echo "You have to provide a label from: [${labels[@]}]"
     exit 1
   }
   label=$custom
@@ -113,41 +131,21 @@ echo "Creating issue with name: '$1', labeled: $label"
 [[ -n $detached ]] || {
   echo "Assigning this issue to you"
 
-  assignee=$(hub api user | cut -d ',' -f1 | cut -d ':' -f2)
-  assignee=" -a ${assignee//\"/' '}"
+  assignee=" -a '$(getUser)'"
 }
 
 issueNumber=$(hub issue create -l "$label" -m "$1" $assignee | rev | cut -d "/" -f1 | rev)
-output="$1"
-
-# Convert all chars to lowercase
-output="$(echo "$output" | awk '{print tolower($0)}')"
-
-# Remove all single quotes
-output=$(echo "$output" | sed -r "s/'//g")
-
-# Convert all non-alpha-numeric to dashes (-)
-output=$(echo "$output" | sed -r "s/[^a-zA-Z0-9-]+/-/g")
-
-# Replace multple dash occurances with singles
-output="$(echo "$output" | sed -r 's/-+/-/g')"
-
-# Remove trailing dashes
-output="$(echo "$output" | sed -r 's/^-+|-+$//g')"
+output=$(slugify "$1")
 
 branchName="$output-i$issueNumber"
 
 [ "$from" == "master" ] && startingBranch=master || {
-  startingBranch=$(hub issue show -f %b $from | cut -d "[" -f2 | cut -d "]" -f1)
+  startingBranch=$(slugify "$(hub issue show -f %t $from)")-i$from
 }
 
 git push origin origin/$startingBranch:refs/heads/$branchName >/dev/null
 
-[[ -n $detached ]] || {
-  git stash
-  git checkout --track origin/$branchName
-  git stash pop
-}
+[[ -n $detached ]] || checkoutBranch $branchName
 
 link=$(hub browse -u | sed -r "s/[a-z0-9-]+$/$branchName/g")
 description="Associated branch: [$branchName]($link)"
