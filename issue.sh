@@ -143,7 +143,7 @@ branchName="$output-i$issueNumber"
   )
 }
 
-git push origin origin/master:refs/heads/$branchName >/dev/null
+git push origin origin/$startingBranch:refs/heads/$branchName >/dev/null
 
 [[ -n $detached ]] || {
   git stash
