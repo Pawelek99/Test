@@ -137,10 +137,8 @@ output="$(echo "$output" | sed -r 's/^-+|-+$//g')"
 
 branchName="$output-i$issueNumber"
 
-[[ -n $from ]] && {
-  [ "$from" == "master" ] && startingBranch=master || (
-    startingBranch=$(hub issue show -f %b $from | cut -d "[" -f2 | cut -d "]" -f1)
-  )
+[ "$from" == "master" ] && startingBranch=master || {
+  startingBranch=$(hub issue show -f %b $from | cut -d "[" -f2 | cut -d "]" -f1)
 }
 
 git push origin origin/$startingBranch:refs/heads/$branchName >/dev/null
