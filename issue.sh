@@ -12,18 +12,22 @@ while [[ $# -gt 0 ]]; do
     echo "After creating issue you will be switched to the newly created branch."
     echo "Keep in mind that this branch automatically will be pushed."
     echo ""
-    echo "Usage:  ./$(basename "$0") [-h] <name> [-b|-c <label>] [--from <issue>] [-d]"
-    echo "        ./$(basename "$0") [-o <issue>]"
+    echo "Usage:  ./$(basename "$0") [-h] <name> [-b|-c <label>] [--from <issue|'master'>] [-d]"
+    echo "        ./$(basename "$0") open <issue>"
     echo "Options:"
     echo "  -h, --help, -help, h, help, ?   - displays this help message"
     echo "  -b, --bug                       - sets 'bug' label to the newly created issue"
     echo "  -c, --custom <label>            - sets the given label to the newly created issue. Label have to exist."
-    echo "  --from <issue number>           - allows to choose a base branch by selecting base issue"
+    echo "  --from <issue number|'master'>  - allows to choose a base branch by selecting base issue"
     echo "  -d, --detached                  - allows to create an issue without switching to the created branch"
-    echo "  -o, --open <issue numer>        - changes branch to the one associated with the given issue and assignes it to you"
+    echo "  open <issue number>             - changes branch to the one associated with the given issue and assignes it to you"
     exit 0
     ;;
   --from)
+    [[ -n $2 ]] || {
+      echo "You have to pass an issue number"
+      exit 1
+    }
     from="$2"
     shift # past argument
     shift # past value
@@ -33,6 +37,10 @@ while [[ $# -gt 0 ]]; do
     shift # past argument
     ;;
   -c | --custom)
+    [[ -n $2 ]] || {
+      echo "You have to pass a label"
+      exit 1
+    }
     custom="$2"
     shift # past argument
     shift # past value
@@ -41,7 +49,11 @@ while [[ $# -gt 0 ]]; do
     detached=1
     shift # past argument
     ;;
-  -o | --open)
+  open)
+    [[ -n $2 ]] || {
+      echo "You have to pass an issue number"
+      exit 1
+    }
     open="$2"
     shift # past argument
     shift # past value
@@ -74,7 +86,6 @@ hub --version >/dev/null || {
   echo "Assigning this issue to you"
 
   assignee=$(hub api user | cut -d ',' -f1 | cut -d ':' -f2)
-  assignee=" -a ${assignee//\"/' '}"
 
   hub issue update $open -a $assignee
   exit 0
@@ -100,10 +111,10 @@ fi
 echo "Creating issue with name: '$1', labeled: $label"
 
 [[ -n $detached ]] || {
+  echo "Assigning this issue to you"
+
   assignee=$(hub api user | cut -d ',' -f1 | cut -d ':' -f2)
   assignee=" -a ${assignee//\"/' '}"
-
-  echo "Assigning it to you!"
 }
 
 issueNumber=$(hub issue create -l "$label" -m "$1" $assignee | rev | cut -d "/" -f1 | rev)
@@ -132,14 +143,14 @@ branchName="$output-i$issueNumber"
   )
 }
 
-[[ -n $detached ]] && git push origin origin/master:refs/heads/$branchName >/dev/null || {
-  git branch -f $branchName $startingBranch
+git push origin origin/master:refs/heads/$branchName >/dev/null
+
+[[ -n $detached ]] || {
   git stash
-  git checkout -f $branchName
+  git checkout --track origin/$branchName
   git stash pop
-  git push --set-upstream origin $branchName
 }
 
-link=$(hub browse -u | sed -r "s/[a-z0-9-]*+$/$branchName/g")
+link=$(hub browse -u | sed -r "s/[a-z0-9-]+$/$branchName/g")
 description="Associated branch: [$branchName]($link)"
 hub issue update "$issueNumber" -m "$1" -m "$description"

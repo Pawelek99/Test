@@ -9,13 +9,13 @@ while [[ $# -gt 0 ]]; do
     echo "If the Pull Request is already created as a draft then it will be converted to an 'open' PR."
     echo ""
     echo "Usage:  ./$(basename "$0") [-h] [-d] [-m] [--to <issue>]"
-    echo "        ./$(basename "$0") ready"
+    echo "        ./$(basename "$0") open [<issue>]"
     echo "Options:"
     echo "  -h, --help, -help, h, help, ?   - displays this help message"
     echo "  -d, --draft                     - marks newly created pull request as a draft"
     echo "  -m, --master                    - switches you to the master branch after creating a pull request"
     echo "  --to <issue number>             - allows to choose a branch to be merged to by selecting an issue"
-    echo "  ready                           - converts an existing PR related to the current issue from 'draft' to 'open'"
+    echo "  open [<issue>]                  - opens webiste with PR associated with the current (or selected) issue"
     exit 0
     ;;
   --to)
@@ -31,8 +31,9 @@ while [[ $# -gt 0 ]]; do
     master=1
     shift # past argument
     ;;
-  ready)
-    ready=1
+  open)
+    [[ -n $2 ]] && open=$2 || open="current"
+    shift # past argument
     shift # past argument
     ;;
   *)      # unknown option
@@ -52,6 +53,16 @@ hub --version >/dev/null || {
 }
 
 issueId=$(git rev-parse --abbrev-ref HEAD | rev | cut -d 'i' -f1 | rev)
+
+[[ -n $open ]] && {
+  echo "opening a website with PR"
+
+  [[ "$open" == "current" ]] && open=''
+  hub pr show $open
+
+  exit 0
+}
+
 issueName=$(hub issue show -f "%t" $issueId)
 label=$(hub issue show -f "%L" $issueId)
 
@@ -65,7 +76,7 @@ echo "Creating pull request for issue #$issueId with name '$issueName', labeled:
   to=" --base $to"
 }
 
-hub pull-request --url -l $label -m "$issueName" -m "Close #$issueId" $draft $to || {
+hub pull-request -l $label -m "$issueName" -m "Close #$issueId" $draft $to 2>/dev/null || {
   echo "We encountered some problems"
   exit 1
 }
