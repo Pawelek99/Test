@@ -131,10 +131,10 @@ echo "Creating issue with name: '$1', labeled: $label"
 [[ -n $detached ]] || {
   echo "Assigning this issue to you"
 
-  assignee=" -a '$(getUser)'"
+  assignee=" -a $(getUser)"
 }
 
-issueNumber=$(hub issue create -l "$label" -m "$1" $assignee | rev | cut -d "/" -f1 | rev)
+issueNumber=$(hub issue create -l '$label' -m '$1' $assignee | rev | cut -d '/' -f1 | rev)
 output=$(slugify "$1")
 
 branchName="$output-i$issueNumber"
