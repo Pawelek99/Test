@@ -29,12 +29,12 @@ while [[ $# -gt 0 ]]; do
       exit 1
     }
     from="$2"
-    shift # past argument
-    shift # past value
+    shift
+    shift
     ;;
   -b | --bug)
     bug=1
-    shift # past argument
+    shift
     ;;
   -c | --custom)
     [[ -n $2 ]] || {
@@ -42,12 +42,12 @@ while [[ $# -gt 0 ]]; do
       exit 1
     }
     custom="$2"
-    shift # past argument
-    shift # past value
+    shift
+    shift
     ;;
   -d | --detached)
     detached=1
-    shift # past argument
+    shift
     ;;
   open)
     [[ -n $2 ]] || {
@@ -55,12 +55,12 @@ while [[ $# -gt 0 ]]; do
       exit 1
     }
     open="$2"
-    shift # past argument
-    shift # past value
+    shift
+    shift
     ;;
-  *)                   # unknown option
-    positional+=("$1") # save it in an array for later
-    shift              # past argument
+  *)
+    positional+=("$1")
+    shift
     ;;
   esac
 done

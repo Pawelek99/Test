@@ -6,7 +6,6 @@ while [[ $# -gt 0 ]]; do
     echo "Creates a pull request from the current branch to the master branch."
     echo "Use this script instead of creating PR through the browser"
     echo "because this way the PR will be marked with the correct label and appropriate issue will be linked."
-    echo "If the Pull Request is already created as a draft then it will be converted to an 'open' PR."
     echo ""
     echo "Usage:  ./$(basename "$0") [-h] [-d] [-m] [--to <issue>]"
     echo "        ./$(basename "$0") open [<issue>]"
@@ -15,29 +14,29 @@ while [[ $# -gt 0 ]]; do
     echo "  -d, --draft                     - marks newly created pull request as a draft"
     echo "  -m, --master                    - switches you to the master branch after creating a pull request"
     echo "  --to <issue number>             - allows to choose a branch to be merged to by selecting an issue"
-    echo "  open [<issue>]                  - opens webiste with PR associated with the current (or selected) issue"
+    echo "  open [<issue number>]           - opens a webiste with PR associated with the current (or selected) issue"
     exit 0
     ;;
   --to)
     to="$2"
-    shift # past argument
-    shift # past value
+    shift
+    shift
     ;;
   -d | --draft)
     draft=-d
-    shift # past argument
+    shift
     ;;
   -m | --master)
     master=1
-    shift # past argument
+    shift
     ;;
   open)
     [[ -n $2 ]] && open=$2 || open="current"
-    shift # past argument
-    shift # past argument
+    shift
+    shift
     ;;
-  *)      # unknown option
-    shift # past argument
+  *)
+    shift
     ;;
   esac
 done
@@ -52,10 +51,16 @@ hub --version >/dev/null || {
   exit 1
 }
 
+function slugify() {
+  local output=$(echo "$1" | awk '{print tolower($0)}')
+  output=$(echo "$output" | sed -r "s/'//g" | sed -r "s/[^a-zA-Z0-9-]+/-/g" | sed -r 's/-+/-/g' | sed -r 's/^-+|-+$//g')
+  echo $output
+}
+
 issueId=$(git rev-parse --abbrev-ref HEAD | rev | cut -d 'i' -f1 | rev)
 
 [[ -n $open ]] && {
-  echo "opening a website with PR"
+  echo "Opening a website with PR"
 
   [[ "$open" == "current" ]] && open=''
   hub pr show $open
@@ -71,7 +76,7 @@ echo "Creating pull request for issue #$issueId with name '$issueName', labeled:
 [[ -n $draft ]] && echo "Marking pull request as a draft"
 
 [[ -n $to ]] && {
-  to=$(hub issue show -f %b $to | cut -d "[" -f2 | cut -d "]" -f1)
+  to=$(slugify "$(hub issue show -f %t $to)")-i$to
   echo "Setting base branch to $to"
   to=" --base $to"
 }
