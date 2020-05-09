@@ -107,7 +107,9 @@ const validateOptions = (tempOptions) => {
   // Validate 'from'
   if (tempOptions.hasOwnProperty('from')) {
     if (!tempOptions.from) {
-      sh.echo('You have to pass an issue number or "master" to "--from" option');
+      sh.echo(
+        'You have to pass an issue number or "master" to "--from" option',
+      );
       sh.exit(1);
     }
 
@@ -131,7 +133,8 @@ const validateCustom = (custom) => {
   }
 
   if (['bug', 'feature'].indexOf(custom) !== -1) {
-    sh.echo(`Warning!
+    sh.echo(
+      `Warning!
       Passing "bug" or "feature" to the "custom" option slows down the process. 
       Try using "--bug" option and keep in mind - "feature" label is the default.
     `.trimIndent(),
@@ -139,9 +142,7 @@ const validateCustom = (custom) => {
   }
 
   // Download labels from Github repo
-  const labels = sh
-    .exec('hub issue labels | grep -F "\n"')
-    .split('\n');
+  const labels = sh.exec('hub issue labels | grep -F "\n"').split('\n');
 
   if (labels.indexOf(custom) === -1) {
     sh.echo(
@@ -196,10 +197,12 @@ const runCommands = (options) => {
     assignee = `-a ${utils.getUser()}`;
   }
 
-  const issueLink = sh.exec(
-    `hub issue create -l '${options.label}' -m '${options.title}' ${assignee} | grep -F ""`,
-    { silent: true }
-  ).trimEndline();
+  const issueLink = sh
+    .exec(
+      `hub issue create -l '${options.label}' -m '${options.title}' ${assignee} | grep -F ""`,
+      { silent: true },
+    )
+    .trimEndline();
 
   if (!issueLink) {
     sh.echo('Something went wrong with creating issue');
@@ -232,29 +235,39 @@ const runCommands = (options) => {
   }
 
   // Adding description to the issue
-  const branchLink = sh.exec('hub browse -u | grep -F ""').trimEndline().replace(/[a-z0-9-]+$/, branchName);
+  const branchLink = sh
+    .exec('hub browse -u | grep -F ""')
+    .trimEndline()
+    .replace(/[a-z0-9-]+$/, branchName);
   const description = `Associated branch: [${branchName}](${branchLink})`;
-  sh.exec(`hub issue update "${issueNumber}" -m "${options.title}" -m "${description}"`);
+  sh.exec(
+    `hub issue update "${issueNumber}" -m "${options.title}" -m "${description}"`,
+  );
 
   sh.exit(0);
 };
 
 const runOpen = (open) => {
-  sh.echo(`Checking out branch "${open.branch}" associated with issue #${open.number}`);
+  sh.echo(
+    `Checking out branch "${open.branch}" associated with issue #${open.number}`,
+  );
 
   // Check if remote branch with this name exist
-  if (
-    sh.exec(`git ls-remote origin ${open.branch}`).code !== 0
-  ) {
+  if (sh.exec(`git ls-remote origin ${open.branch}`).code !== 0) {
     sh.echo(`Remote branch "${open.branch}" does not exist`);
     sh.exit(1);
   }
 
   // Check if local branch with this name exist
-  if (sh.exec(`git show-ref --verify --quiet refs/heads/${open.branch}`).code === 0) {
+  if (
+    sh.exec(`git show-ref --verify --quiet refs/heads/${open.branch}`).code ===
+    0
+  ) {
     // Checkout local branch
     if (sh.exec(`git checkout ${open.branch}`).code !== 0) {
-      sh.echo('We had a problem with checking out the branch. Maybe stash changes before trying again?');
+      sh.echo(
+        'We had a problem with checking out the branch. Maybe stash changes before trying again?',
+      );
       sh.exit(1);
     }
 
@@ -263,7 +276,9 @@ const runOpen = (open) => {
   } else {
     // Checkout and track remote branch
     if (sh.exec(`git checkout --track origin/${open.branch}`).code !== 0) {
-      sh.echo('We had a problem with checking out the branch. Maybe stash changes before trying again?');
+      sh.echo(
+        'We had a problem with checking out the branch. Maybe stash changes before trying again?',
+      );
       sh.exit(1);
     }
   }

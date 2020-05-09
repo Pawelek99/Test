@@ -91,14 +91,12 @@ const validateOptions = (tempOptions) => {
 
 const validateTo = (to) => {
   if (!utils.validateNumber(to)) {
-    sh.echo(
-      'Parameter passed to "--to" have to be an issue number',
-    );
+    sh.echo('Parameter passed to "--to" have to be an issue number');
     sh.exit(1);
   }
 
   return utils.getBranchNameFromNumber(to);
-}
+};
 
 const validateOpen = (open) => {
   // If user didn't pass an issue number use current
@@ -126,9 +124,22 @@ const runCommands = (options) => {
   }
 
   const issueNumber = utils.getCurrentIssueNumber();
-  const issue = JSON.parse(sh.exec(`hub issue show -f '{"title":"%t","labels":"%L"}' ${issueNumber} | grep -F ""`).trimIndent());
+  const issue = JSON.parse(
+    sh
+      .exec(
+        `hub issue show -f '{"title":"%t","labels":"%L"}' ${issueNumber} | grep -F ""`,
+      )
+      .trimIndent(),
+  );
 
-  sh.echo(`Creating Pull Request for issue #${issueNumber} "${issue.title}", labeled: "${issue.labels}"`);
+  sh.echo(
+    `Creating Pull Request for issue #${issueNumber} "${issue.title}", labeled: "${issue.labels}"`,
+  );
+
+  // If there's a more than one label, remove spaces around commas
+  if (issue.labels.includes(',')) {
+    issue.labels = issue.labels.replace(/, /g, ',');
+  }
 
   if (options.draft) {
     sh.echo('Marking Pull Request as a draft');
@@ -139,14 +150,20 @@ const runCommands = (options) => {
 
   if (options.to) {
     sh.echo(`Setting base branch to "${options.to}"`);
-    options.to = `--base ${options.to}`;
+    options.to = `--base "${options.to}"`;
   } else {
     options.to = '';
   }
 
   // Creating Pull Request
-  if (sh.exec(`hub pull-request -l "${issue.labels}" -m "${issue.title}" -m "Close #${issueNumber}" ${options.draft} ${options.to}`).code !== 0) {
-    sh.echo(`We ecountered some problems with creating PR for issue #${issueNumber} "${issue.title}"`);
+  if (
+    sh.exec(
+      `hub pull-request -l "${issue.labels}" -m "${issue.title}" -m "Close #${issueNumber}" ${options.draft} ${options.to} | grep -F ""`,
+    ).code !== 0
+  ) {
+    sh.echo(
+      `We ecountered some problems with creating PR for issue #${issueNumber} "${issue.title}"`,
+    );
     sh.exit(1);
   }
 
@@ -163,9 +180,13 @@ const runCommands = (options) => {
 };
 
 const runOpen = (open) => {
-  sh.echo(`Opening a website with PR (or issue if PR does not exist) associated with branch ${open.branch}`);
+  sh.echo(
+    `Opening a website with PR (or issue if PR does not exist) associated with branch ${open.branch}`,
+  );
 
-  const prLink = sh.exec(`hub pr show -u ${open.number} | grep -F ""`).trimIndent();
+  const prLink = sh
+    .exec(`hub pr show -u ${open.number} | grep -F ""`)
+    .trimIndent();
 
   sh.exec(`xdg-open ${prLink}`);
   sh.exit(0);

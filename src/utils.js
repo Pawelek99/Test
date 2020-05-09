@@ -22,8 +22,7 @@ const printError = (text) => {
 };
 
 const getUser = () => {
-  return JSON.parse(sh.exec('hub api user | grep -F ""'))
-    .login;
+  return JSON.parse(sh.exec('hub api user | grep -F ""')).login;
 };
 
 const getBranchNameFromNumber = (issueNumber) => {
@@ -57,7 +56,9 @@ const getCurrentIssueNumber = () => {
   const indexOfI = branchName.lastIndexOf('i');
   const number = branchName.substring(indexOfI + 1);
   if (indexOfI === -1 || !validateNumber(number)) {
-    sh.echo(`There are not associated issue with current branch "${branchName}"`);
+    sh.echo(
+      `There are not associated issue with current branch "${branchName}"`,
+    );
     sh.exit(1);
   }
 
@@ -70,7 +71,7 @@ String.prototype.trimIndent = function () {
 
 String.prototype.trimEndline = function () {
   return this.replace(/\n/, '');
-}
+};
 
 module.exports = {
   slugify,
