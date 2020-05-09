@@ -2,6 +2,8 @@ require('dotenv').config();
 const utils = require('./utils');
 const sh = require('shelljs');
 
+sh.config.silent = true;
+
 const showHelp = () => {
   sh.echo(
     `
@@ -111,7 +113,7 @@ const validateOptions = (tempOptions) => {
 
     options.from = validateFrom(tempOptions.from);
   } else {
-    options.from = 'master';
+    options.from = getCurrentBranchName();
   }
 
   // Validate 'detached'
@@ -131,14 +133,14 @@ const validateCustom = (custom) => {
   if (['bug', 'feature'].indexOf(custom) !== -1) {
     sh.echo(`Warning!
       Passing "bug" or "feature" to the "custom" option slows down the process. 
-      Try using "bug" option and keep in mind - "feature" label is the default.
+      Try using "--bug" option and keep in mind - "feature" label is the default.
     `.trimIndent(),
     );
   }
 
   // Download labels from Github repo
   const labels = sh
-    .exec('hub issue labels | grep -F "\n"', { silent: true })
+    .exec('hub issue labels | grep -F "\n"')
     .split('\n');
 
   if (labels.indexOf(custom) === -1) {
@@ -192,11 +194,15 @@ const getBranchNameFromNumber = (issueNumber) => {
     sh.exit(1);
   }
 
-  return getBranchName(issueTitleCommand.stdout, issueNumber);
+  return getBranchName(issueTitleCommand.trimEndline(), issueNumber);
 };
 
 const getBranchName = (issueTitle, issueNumber) => {
   return `${utils.slugify(issueTitle)}-i${issueNumber}`;
+}
+
+const getCurrentBranchName = () => {
+  return sh.exec('git rev-parse --abbrev-ref HEAD').stdout.trimEndline();
 }
 
 const runCommands = (options) => {
@@ -219,12 +225,14 @@ const runCommands = (options) => {
   const issueLink = sh.exec(
     `hub issue create -l '${options.label}' -m '${options.title}' ${assignee} | grep -F ""`,
     { silent: true }
-  ).stdout.trimEndline();
+  ).trimEndline();
 
   if (!issueLink) {
     sh.echo('Something went wrong with creating issue');
     sh.exit(1);
   }
+
+  sh.echo(`Created issue: ${issueLink}`);
 
   const indexOfSlash = issueLink.lastIndexOf('/') + 1;
   const issueNumber = issueLink.substring(indexOfSlash);
@@ -235,18 +243,22 @@ const runCommands = (options) => {
   }
 
   // Creating a custom branch
-  sh.echo('Checking out your new branch');
   const branchName = getBranchName(options.title, issueNumber);
-  sh.exec(`git push origin origin/${options.from}:refs/heads/${branchName}`, { silent: true });
+
+  sh.echo(`Creating branch "${branchName}" based on "${options.from}"`);
+
+  sh.exec(`git push origin origin/${options.from}:refs/heads/${branchName}`);
 
   if (!options.detached) {
-    sh.exec('git stash', { silent: true });
-    sh.exec(`git checkout ${branchName}`, { silent: true });
-    sh.exec('git stash pop', { silent: true });
+    sh.echo('Checking out created branch');
+
+    sh.exec('git stash');
+    sh.exec(`git checkout ${branchName}`);
+    sh.exec('git stash pop');
   }
 
   // Adding description to the issue
-  const branchLink = sh.exec('hub browse -u | grep -F ""').replace(/[a-z0-9-]+$/, branchName);
+  const branchLink = sh.exec('hub browse -u | grep -F ""').trimEndline().replace(/[a-z0-9-]+$/, branchName);
   const description = `Associated branch: [${branchName}](${branchLink})`;
   sh.exec(`hub issue update "${issueNumber}" -m "${options.title}" -m "${description}"`);
 
@@ -258,25 +270,23 @@ const runOpen = (open) => {
 
   // Check if remote branch with this name exist
   if (
-    sh.exec(`git ls-remote origin ${open.branch}`, { silent: true }).code !== 0
+    sh.exec(`git ls-remote origin ${open.branch}`).code !== 0
   ) {
     sh.echo(`Remote branch "${open.branch}" does not exist`);
     sh.exit(1);
   }
 
   // Checkout the branch
-  sh.exec(`git checkout --track origin/${open.branch}`, { silent: true });
+  sh.exec(`git checkout --track origin/${open.branch}`);
 
   sh.echo('Assigning this issue to you');
-  sh.exec(`hub issue update ${open.number} -a ${utils.getUser()}`, { silent: true });
+  sh.exec(`hub issue update ${open.number} -a ${utils.getUser()}`);
 
   sh.exit(0);
 };
 
 const issue = (args) => {
-  const options = parseArgs(args);
-  runCommands(options);
-  sh.echo(options);
+  runCommands(parseArgs(args));
 };
 
 module.exports = issue;

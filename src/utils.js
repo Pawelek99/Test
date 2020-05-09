@@ -1,5 +1,7 @@
 const sh = require('shelljs');
 
+sh.config.silent = true;
+
 const slugify = (input) => {
   return input
     .toLowerCase()
@@ -20,7 +22,7 @@ const printError = (text) => {
 };
 
 const getUser = () => {
-  return JSON.parse(sh.exec('hub api user | grep -F ""', { silent: true }))
+  return JSON.parse(sh.exec('hub api user | grep -F ""'))
     .login;
 };
 

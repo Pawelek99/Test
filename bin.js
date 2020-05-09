@@ -1,7 +1,9 @@
 require('./src/utils');
-const sh = require('shelljs');
 const issue = require('./src/issue');
-const pr = require('./src/pr');
+// const pr = require('./src/pr');
+const sh = require('shelljs');
+
+sh.config.silent = true;
 
 if (!sh.which('git')) {
   sh.echo(
@@ -23,7 +25,7 @@ if (['issue', 'i'].indexOf(args[0]) !== -1) {
 }
 
 if (['pull-request', 'pr'].indexOf(args[0]) !== -1) {
-  pr(args.slice(1));
+  // pr(args.slice(1));
   sh.exit(0);
 }
 
@@ -38,5 +40,4 @@ sh.echo(
   
   If you want help with OPTIONS, just type 'help' instead of OPTIONS.
   Have fun!
-`.trimIndent(),
-);
+`.trimIndent());
