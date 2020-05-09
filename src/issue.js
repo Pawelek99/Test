@@ -113,7 +113,7 @@ const validateOptions = (tempOptions) => {
 
     options.from = validateFrom(tempOptions.from);
   } else {
-    options.from = getCurrentBranchName();
+    options.from = utils.getCurrentBranchName();
   }
 
   // Validate 'detached'
@@ -164,7 +164,7 @@ const validateFrom = (from) => {
     sh.exit(1);
   }
 
-  return getBranchNameFromNumber(from);
+  return utils.getBranchNameFromNumber(from);
 };
 
 const validateOpen = (open) => {
@@ -174,36 +174,10 @@ const validateOpen = (open) => {
   }
 
   return {
-    branch: getBranchNameFromNumber(open),
+    branch: utils.getBranchNameFromNumber(open),
     number: open,
   };
 };
-
-const getBranchNameFromNumber = (issueNumber) => {
-  const issueTitleCommand = sh.exec(
-    `hub issue show -f %t ${issueNumber} | grep -F ""`,
-    {
-      silent: true,
-    },
-  );
-
-  if (issueTitleCommand.code !== 0) {
-    sh.echo(
-      `Something went wrong with downloading issue (#${issueNumber}) title`,
-    );
-    sh.exit(1);
-  }
-
-  return getBranchName(issueTitleCommand.trimEndline(), issueNumber);
-};
-
-const getBranchName = (issueTitle, issueNumber) => {
-  return `${utils.slugify(issueTitle)}-i${issueNumber}`;
-}
-
-const getCurrentBranchName = () => {
-  return sh.exec('git rev-parse --abbrev-ref HEAD').stdout.trimEndline();
-}
 
 const runCommands = (options) => {
   if (options.open) {
@@ -243,7 +217,7 @@ const runCommands = (options) => {
   }
 
   // Creating a custom branch
-  const branchName = getBranchName(options.title, issueNumber);
+  const branchName = utils.getBranchName(options.title, issueNumber);
 
   sh.echo(`Creating branch "${branchName}" based on "${options.from}"`);
 
