@@ -266,7 +266,7 @@ const runCommands = (options) => {
 };
 
 const runOpen = (open) => {
-  sh.echo('Checking out branch associated with the selected issue');
+  sh.echo(`Checking out branch "${open.branch}" associated with issue #${open.number}`);
 
   // Check if remote branch with this name exist
   if (
@@ -276,10 +276,25 @@ const runOpen = (open) => {
     sh.exit(1);
   }
 
-  // Checkout the branch
-  sh.exec(`git checkout --track origin/${open.branch}`);
+  // Check if local branch with this name exist
+  if (sh.exec(`git show-ref --verify --quiet refs/heads/${open.branch}`).code === 0) {
+    // Checkout local branch
+    if (sh.exec(`git checkout ${open.branch}`).code !== 0) {
+      sh.echo('We had a problem with checking out the branch. Maybe stash changes before trying again?');
+      sh.exit(1);
+    }
 
-  sh.echo('Assigning this issue to you');
+    // Pull changes from remote
+    sh.exec(`git pull origin ${open.branch}`);
+  } else {
+    // Checkout and track remote branch
+    if (sh.exec(`git checkout --track origin/${open.branch}`).code !== 0) {
+      sh.echo('We had a problem with checking out the branch. Maybe stash changes before trying again?');
+      sh.exit(1);
+    }
+  }
+
+  sh.echo(`Assigning issue #${open.number} to you`);
   sh.exec(`hub issue update ${open.number} -a ${utils.getUser()}`);
 
   sh.exit(0);
