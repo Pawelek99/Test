@@ -1,7 +1,7 @@
 require('./src/utils');
 const sh = require('shelljs');
 const issue = require('./src/issue');
-const pr = require('./src/pr');
+// const pr = require('./src/pr');
 
 if (!sh.which('git')) {
   sh.echo(
@@ -23,7 +23,7 @@ if (['issue', 'i'].indexOf(args[0]) !== -1) {
 }
 
 if (['pull-request', 'pr'].indexOf(args[0]) !== -1) {
-  pr(args.slice(1));
+  // pr(args.slice(1));
   sh.exit(0);
 }
 
@@ -33,8 +33,8 @@ sh.echo(
   We've got a problem...
 
   The correct usage of this command is:
-    ${process.env.LIB_NAME} issue|i [OPTIONS]
-    ${process.env.LIB_NAME} pull-request|pr [OPTIONS]
+  \t${process.env.LIB_NAME} issue|i [OPTIONS]
+  \t${process.env.LIB_NAME} pull-request|pr [OPTIONS]
   
   If you want help with OPTIONS, just type 'help' instead of OPTIONS.
   Have fun!
