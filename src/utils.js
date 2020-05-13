@@ -15,7 +15,7 @@ Array.prototype.asyncForEach = async function (callback) {
   for (let index = 0; index < this.length; index++) {
     await callback(this[index], index, this);
   }
-}
+};
 
 const slugify = (input) => {
   return input
@@ -44,7 +44,7 @@ const getBranchNameFromNumber = async (issueNumber) => {
     sh.exit(1);
   }
 
-  return getBranchName(issue.issueTitle, issueNumber);
+  return getBranchName(issue.title, issueNumber);
 };
 
 const getBranchName = (issueTitle, issueNumber) => {
@@ -85,7 +85,7 @@ const getNumberFromLink = (link) => {
 const getBranchLink = async (branch) => {
   const repoLink = await api.getRepo().url;
   return `${repoLink}/tree/${branch}`;
-}
+};
 
 module.exports = {
   slugify,

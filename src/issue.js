@@ -146,9 +146,7 @@ const validateCustom = async (custom) => {
   const labels = await api.getLabels();
 
   if (labels.indexOf(custom) === -1) {
-    sh.echo(
-      `You have to provide a label from: [${labels.join(', ')}]`,
-    );
+    sh.echo(`You have to provide a label from: [${labels.join(', ')}]`);
     sh.exit(1);
   }
   return custom;
@@ -180,7 +178,7 @@ const validateOpen = async (open) => {
   return {
     branch: utils.getBranchName(issue.title, issue.number),
     number: issue.number,
-    id: issue.id
+    id: issue.id,
   };
 };
 
@@ -203,11 +201,7 @@ const runCommands = async (options) => {
     assignee = user.id;
   }
 
-  const issue = await api.createIssue(
-    options.title,
-    options.label,
-    assignee
-  );
+  const issue = await api.createIssue(options.title, options.label, assignee);
 
   if (!issue) {
     sh.echo('Something went wrong with creating issue');
@@ -243,7 +237,11 @@ const runCommands = async (options) => {
   const description = `Associated branch: [${branchName}](${branchLink})`;
 
   const result = await api.updateIssue(issue.id, description);
-  console.log(result);
+
+  if (!result) {
+    sh.echo('Something went wrong with setting issue description');
+    sh.exit(1);
+  }
 
   sh.exit(0);
 };

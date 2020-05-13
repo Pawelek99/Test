@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-require('./src/utils');
+require('dotenv').config();
 const issue = require('./src/issue');
 const pr = require('./src/pr');
 const sh = require('shelljs');
@@ -14,11 +14,6 @@ if (!sh.which('git')) {
   sh.exit(1);
 }
 
-if (!sh.which('hub')) {
-  sh.echo('Nope. Install "hub" first: "https://github.com/github/hub"');
-  sh.exit(1);
-}
-
 const run = async () => {
   const args = process.argv.slice(2);
 
@@ -26,12 +21,12 @@ const run = async () => {
     await issue(args.slice(1));
     sh.exit(0);
   }
-  
+
   if (['pull-request', 'pr'].indexOf(args[0]) !== -1) {
-    pr(args.slice(1));
+    await pr(args.slice(1));
     sh.exit(0);
   }
-  
+
   // User must have typed something wrong
   sh.echo(
     `
@@ -43,7 +38,8 @@ const run = async () => {
     
     If you want help with OPTIONS, just type 'help' instead of OPTIONS.
     Have fun!
-  `.trimIndent());
+  `.trimIndent(),
+  );
 };
 
 run();
