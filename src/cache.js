@@ -53,11 +53,11 @@ const saveFile = async () => {
 const get = async (key) => {
 	await loadFile();
 
-	return cache.get(key);
+	return Buffer.from(cache.get(key), 'base64').toString('utf-8');
 };
 
 const set = async (key, value) => {
-	cache.set(key, value);
+	cache.set(key, Buffer.from(value).toString('base64'));
 
 	await	saveFile();
 };

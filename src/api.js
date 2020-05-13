@@ -1,14 +1,63 @@
 require('dotenv').config();
 const f = require('node-fetch');
 const sh = require('shelljs');
+const read = require('read');
+const cache = require('./cache');
 
 Object.prototype.fromPath = function (...path) {
   return path.reduce((xs, x) => (xs && xs[x] ? xs[x] : null), this);
 };
 
-const getAuthHeaders = () => {
+const askForToken = async () => {
+  new Promise((resolve, _) => {
+    read({ prompt: 'Username: ', silent: false }, (error, username) => {
+      if (error) {
+        sh.echo('You have to login into your Github account to continue');
+        sh.exit(1);
+      }
+
+      read({ prompt: 'Password: ', silent: true }, (error, password) => {
+        if (error) {
+          sh.echo('Your password is never stored');
+          sh.exit(1);
+        }
+
+        resolve({
+          username,
+          password
+        });
+      });
+    });
+  });
+};
+
+const auth = async () => {
+  const { username, password } = await askForToken();
+
+  const res = await f(`${process.env.API_URL}/authorizations`, {
+    method: 'POST',
+    headers: {
+      Authorization: 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64')
+    },
+    body: JSON.stringify({
+      scopes: ['repo', 'user'],
+      note: 'Token for "itg"',
+    }),
+  });
+  return res.json();
+};
+
+const getAuthHeaders = async () => {
+  let token = process.env.TOKEN || await cache.get('TOKEN');
+
+  // Ask for creating authorization token if it does not exist
+  if (!token) {
+    token = (await auth()).token;
+    await cache.set('TOKEN', token);
+  }
+
   return {
-    Authorization: `bearer ${process.env.TOKEN}`,
+    Authorization: `bearer ${token}`,
   };
 };
 
@@ -17,9 +66,9 @@ const mutation = async (mutation) => {
 };
 
 const query = async (query, isMutation) => {
-  const res = await f(process.env.API_URL, {
+  const res = await f(`${process.env.API_URL}/graphql`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: await getAuthHeaders(),
     body: `{ "query": "${isMutation ? 'mutation' : ''} { ${query
       .replace(/\n| +/g, ' ')
       .replace(/"/g, '\\"')} }" }`,
