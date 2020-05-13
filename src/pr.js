@@ -27,7 +27,7 @@ const showHelp = () => {
   sh.exit(0);
 };
 
-const parseArgs = (args) => {
+const parseArgs = async (args) => {
   const options = {};
   for (let i = 0; i < args.length; i++) {
     if (['-h', '--help', '-help', 'h', 'help', '?'].indexOf(args[i]) !== -1) {
@@ -59,7 +59,7 @@ const parseArgs = (args) => {
   return validateOptions(options);
 };
 
-const validateOptions = (tempOptions) => {
+const validateOptions = async (tempOptions) => {
   const options = {};
 
   // Validate 'open'
@@ -70,7 +70,7 @@ const validateOptions = (tempOptions) => {
       sh.exit(1);
     }
 
-    options.open = validateOpen(tempOptions.open);
+    options.open = await validateOpen(tempOptions.open);
 
     // Return now to avoid checking other options
     return options;
@@ -84,7 +84,7 @@ const validateOptions = (tempOptions) => {
       sh.exit(1);
     }
 
-    options.ready = validateReady(tempOptions.ready);
+    options.ready = await validateReady(tempOptions.ready);
 
     // Return now to avoid checking other options
     return options;
@@ -112,13 +112,13 @@ const validateOptions = (tempOptions) => {
       sh.exit(1);
     }
 
-    options.to = validateTo(tempOptions.to);
+    options.to = await validateTo(tempOptions.to);
   }
 
   return options;
 };
 
-const validateTo = (to) => {
+const validateTo = async (to) => {
   if (!utils.validateNumber(to)) {
     sh.echo('Parameter passed to "--to" have to be an issue number');
     sh.exit(1);
@@ -127,7 +127,7 @@ const validateTo = (to) => {
   return utils.getBranchNameFromNumber(to);
 };
 
-const validateReady = (ready) => {
+const validateReady = async (ready) => {
   // If user didn't pass an issue number use current
   if (!ready) {
     return {
@@ -147,7 +147,7 @@ const validateReady = (ready) => {
   };
 }
 
-const validateOpen = (open) => {
+const validateOpen = async (open) => {
   // If user didn't pass an issue number use current
   if (!open) {
     return utils.getCurrentBranchName();
@@ -161,7 +161,7 @@ const validateOpen = (open) => {
   return utils.getBranchNameFromNumber(open);
 };
 
-const runCommands = (options) => {
+const runCommands = async (options) => {
   if (options.open) {
     runOpen(options.open);
   }
@@ -214,7 +214,7 @@ const runCommands = (options) => {
   sh.exit(0);
 };
 
-const runReady = (ready) => {
+const runReady = async (ready) => {
   sh.echo(`Marking a PR associated with branch "${ready.branch}" as ready for review`);
 
   const repo = utils.getRepo();
@@ -271,7 +271,7 @@ const runReady = (ready) => {
   sh.exit(0);
 }
 
-const runOpen = (open) => {
+const runOpen = async (open) => {
   sh.echo(`Opening a website with PR associated with branch "${open}"`);
 
   const prLink = sh.exec(`hub pr show -u -h ${open}`).trimEndline();
