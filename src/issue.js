@@ -223,9 +223,16 @@ const runCommands = async (options) => {
   if (!options.detached) {
     sh.echo('Checking out created branch');
 
-    sh.exec('git stash');
+    const hasUncommitedChanges = sh.exec('git status -s').stdout;
+    if (hasUncommitedChanges) {
+      sh.exec('git stash');
+    }
+
     sh.exec(`git checkout ${branchName}`);
-    sh.exec('git stash pop');
+
+    if (hasUncommitedChanges) {
+      sh.exec('git stash pop');
+    }
   }
 
   // Adding description to the issue
@@ -281,8 +288,8 @@ const runOpen = async (open) => {
 };
 
 const issue = async (args) => {
-  await runCommands(await parseArgs(args));
-  // console.log(await api.createIssue('tytul', ''));
+  // await runCommands(await parseArgs(args));
+  console.log(sh.exec('git status -s').stdout);
 };
 
 module.exports = issue;
