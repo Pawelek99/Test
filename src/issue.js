@@ -147,7 +147,7 @@ const validateCustom = async (custom) => {
 
   if (labels.indexOf(custom) === -1) {
     sh.echo(
-      `You have to provide a label from: [${labels.join(', ').slice(0, -2)}]`,
+      `You have to provide a label from: [${labels.join(', ')}]`,
     );
     sh.exit(1);
   }

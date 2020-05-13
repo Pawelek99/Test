@@ -1,5 +1,6 @@
-const utils = require('./utils');
+const api = require('./api');
 const sh = require('shelljs');
+const utils = require('./utils');
 
 sh.config.silent = true;
 
@@ -170,50 +171,33 @@ const runCommands = (options) => {
   }
 
   const issueNumber = utils.getCurrentIssueNumber();
-  const issue = JSON.parse(
-    sh
-      .exec(`hub issue show -f '{"title":"%t","labels":"%L"}' ${issueNumber}`)
-      .trimIndent(),
-  );
+  const issue = api.getIssue(issueNumber, true);
 
   sh.echo(
-    `Creating Pull Request for issue #${issueNumber} "${issue.title}", labeled: "${issue.labels}"`,
+    `Creating Pull Request for issue #${issueNumber} "${issue.name}", labeled: "${issue.labels.join(', ')}"`,
   );
-
-  // If there's a more than one label, remove spaces around commas
-  if (issue.labels.includes(',')) {
-    issue.labels = issue.labels.replace(/, /g, ',');
-  }
 
   if (options.draft) {
     sh.echo('Marking Pull Request as a draft');
-    options.draft = '-d';
-  } else {
-    options.draft = '';
   }
 
   if (options.push) {
     sh.echo('Pushing changes before creating Pull Request');
-    options.push = '-fp';
-  } else {
-    options.push = '';
   }
 
   if (options.to) {
     sh.echo(`Setting base branch to "${options.to}"`);
-    options.to = `--base "${options.to}"`;
   } else {
-    options.to = '';
+    options.to = 'master';
   }
 
+  options.from = utils.getCurrentBranchName();
+
   // Creating Pull Request
-  if (
-    sh.exec(
-      `hub pull-request -l "${issue.labels}" -m "${issue.title}" -m "Close #${issueNumber}" ${options.draft} ${options.push} ${options.to}`,
-    ).code !== 0
-  ) {
+  const pullRequest = await api.createPullRequest(issue, options);
+  if (!pullRequest) {
     sh.echo(
-      `We ecountered some problems with creating PR for issue #${issueNumber} "${issue.title}"`,
+      `We ecountered some problems with creating PR for issue #${issueNumber} "${issue.name}"`,
     );
     sh.exit(1);
   }
@@ -301,8 +285,8 @@ const runOpen = (open) => {
   sh.exit(0);
 };
 
-const pr = (args) => {
-  runCommands(parseArgs(args));
+const pr = async (args) => {
+  await runCommands(await parseArgs(args));
 };
 
 module.exports = pr;

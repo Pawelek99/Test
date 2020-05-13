@@ -44,9 +44,13 @@ const methods = {
     return user.fromPath('data', 'viewer');
   },
 
-  getIssue: async (issueNumber) => {
-    const issue = await queryRepo(`issue(number: ${issueNumber}) { id number title }`);
-    return issue.fromPath('data', 'repository', 'issue');
+  getIssue: async (issueNumber, withLabels) => {
+    let issue = await queryRepo(`issue(number: ${issueNumber}) { id number title ${withLabels ? 'labels(first: 10) { nodes { name id } }' : ''} }`);
+    issue = issue.fromPath('data', 'repository', 'issue');
+    if (withLabels) {
+      issue.labels = issue.labels.nodes.map(l => ({ name: l.name, id: l.id }));
+    }
+    return issue;
   },
 
   getPrNumberFromBranch: async (branch) => {
@@ -85,6 +89,13 @@ const methods = {
     }) { issue { id url number } }`);
     return issue.fromPath('data', 'updateIssue', 'issue');
   },
+
+  createPullRequest: async (issue, options) => {
+    const pr = await mutation(`createPullRequest(input: {
+      repositoryId: "${repo.id}", baseRefName: "${options.from}", headRefName: "${options.to}", title: "${issue.name}", draft: ${options.draft === true}
+    }) { id number url }`);
+    return pr.fromPath('data', 'createPullRequest', 'pullRequest');
+  }
 };
 
 module.exports = methods;
