@@ -24,16 +24,13 @@
   "license": "ISC",
   "homepage": "https://github.com/Pawelek99/itg#readme",
   "dependencies": {
-    "@octokit/auth-basic": "^1.4.3",
-    "@octokit/rest": "^17.8.0",
     "dotenv": "^8.2.0",
     "git-root-dir": "^1.0.2",
-    "jest": "^26.0.1",
-    "node-cache": "^5.1.0",
     "shelljs": "^0.8.4"
   },
   "devDependencies": {
-    "prettier": "^2.0.5"
+    "prettier": "^2.0.5",
+    "jest": "^26.0.1"
   },
   "files": [
     "bin.js",
