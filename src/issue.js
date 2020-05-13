@@ -274,7 +274,7 @@ const runOpen = async (open) => {
   }
 
   sh.echo(`Assigning issue #${open.number} to you`);
-  const user = await utils.getUser();
+  const user = await api.getUser();
   await api.updateIssue(open.id, undefined, user.id);
 
   sh.exit(0);
