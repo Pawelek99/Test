@@ -289,7 +289,7 @@ const runOpen = async (open) => {
 
 const issue = async (args) => {
   // await runCommands(await parseArgs(args));
-  console.log(sh.exec('git status -s').stdout);
+  console.log(sh.exec('git status -s').stdout != '\n');
 };
 
 module.exports = issue;
