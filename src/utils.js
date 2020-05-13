@@ -37,14 +37,14 @@ const printError = (text) => {
 };
 
 const getBranchNameFromNumber = async (issueNumber) => {
-  const issueTitle = await api.getIssueTitle(issueNumber);
+  const issue = await api.getIssue(issueNumber);
 
-  if (!issueTitle) {
+  if (!issue) {
     sh.echo(`Something went wrong with getting issue title (#${issueNumber})`);
     sh.exit(1);
   }
 
-  return getBranchName(issueTitle, issueNumber);
+  return getBranchName(issue.issueTitle, issueNumber);
 };
 
 const getBranchName = (issueTitle, issueNumber) => {

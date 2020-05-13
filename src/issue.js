@@ -175,9 +175,12 @@ const validateOpen = async (open) => {
     sh.exit(1);
   }
 
+  const issue = await api.getIssue(open);
+
   return {
-    branch: await utils.getBranchNameFromNumber(open),
-    number: open,
+    branch: utils.getBranchName(issue.title, issue.number),
+    number: issue.number,
+    id: issue.id
   };
 };
 

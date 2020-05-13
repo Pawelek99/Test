@@ -44,9 +44,9 @@ const methods = {
     return user.fromPath('data', 'viewer');
   },
 
-  getIssueTitle: async (issueNumber) => {
-    const issueTitle = await queryRepo(`issue(number: ${issueNumber}) { title }`);
-    return issueTitle.fromPath('data', 'repository', 'issue', 'title');
+  getIssue: async (issueNumber) => {
+    const issue = await queryRepo(`issue(number: ${issueNumber}) { id number title }`);
+    return issue.fromPath('data', 'repository', 'issue');
   },
 
   getPrNumberFromBranch: async (branch) => {
