@@ -1,5 +1,6 @@
 require('dotenv').config();
 const utils = require('./utils');
+const api = require('./api');
 const sh = require('shelljs');
 
 sh.config.silent = true;
@@ -60,7 +61,7 @@ const parseArgs = (args) => {
   return validateOptions(options);
 };
 
-const validateOptions = (tempOptions) => {
+const validateOptions = async (tempOptions) => {
   const options = {};
 
   // Validate 'open'
@@ -76,7 +77,7 @@ const validateOptions = (tempOptions) => {
       sh.exit(1);
     }
 
-    options.open = validateOpen(tempOptions.open);
+    options.open = await validateOpen(tempOptions.open);
 
     // Return now to avoid checking other options
     return options;
@@ -97,7 +98,7 @@ const validateOptions = (tempOptions) => {
       sh.exit(1);
     }
 
-    options.label = validateCustom(tempOptions.custom);
+    options.label = await validateCustom(tempOptions.custom);
   } else if (tempOptions.bug) {
     options.label = 'bug';
   } else {
@@ -113,7 +114,7 @@ const validateOptions = (tempOptions) => {
       sh.exit(1);
     }
 
-    options.from = validateFrom(tempOptions.from);
+    options.from = await validateFrom(tempOptions.from);
   } else {
     options.from = utils.getCurrentBranchName();
   }
@@ -126,7 +127,7 @@ const validateOptions = (tempOptions) => {
   return options;
 };
 
-const validateCustom = (custom) => {
+const validateCustom = async (custom) => {
   if (!custom) {
     sh.echo('You have to pass a label');
     sh.exit(1);
@@ -142,7 +143,7 @@ const validateCustom = (custom) => {
   }
 
   // Download labels from Github repo
-  const labels = sh.exec('hub issue labels | grep -F "\n"').split('\n');
+  const labels = await api.getLabels();
 
   if (labels.indexOf(custom) === -1) {
     sh.echo(
@@ -153,7 +154,7 @@ const validateCustom = (custom) => {
   return custom;
 };
 
-const validateFrom = (from) => {
+const validateFrom = async (from) => {
   if (from === 'master') {
     return 'master';
   }
@@ -168,59 +169,52 @@ const validateFrom = (from) => {
   return utils.getBranchNameFromNumber(from);
 };
 
-const validateOpen = (open) => {
+const validateOpen = async (open) => {
   if (!utils.validateNumber(open)) {
     sh.echo('Parameter passed to "open" have to be an issue number');
     sh.exit(1);
   }
 
   return {
-    branch: utils.getBranchNameFromNumber(open),
+    branch: await utils.getBranchNameFromNumber(open),
     number: open,
   };
 };
 
-const runCommands = (options) => {
+const runCommands = async (options) => {
   if (options.open) {
-    runOpen(options.open);
+    await runOpen(options.open);
+    sh.exit(0);
   }
 
   // Creating an issue
   sh.echo(
-    `Creating issue with name: ${options.title}, labeled: ${options.label}`,
+    `Creating issue with name: "${options.title}", labeled: "${options.label}"`,
   );
 
-  let assignee = '';
+  let assignee = undefined;
   if (!options.detached) {
     sh.echo('Assigning this issue to you');
 
-    assignee = `-a ${utils.getUser()}`;
+    const user = await api.getUser();
+    assignee = user.id;
   }
 
-  const issueLink = sh
-    .exec(
-      `hub issue create -l '${options.label}' -m '${options.title}' ${assignee} | grep -F ""`,
-      { silent: true },
-    )
-    .trimEndline();
+  const issue = await api.createIssue(
+    options.title,
+    options.label,
+    assignee
+  );
 
-  if (!issueLink) {
+  if (!issue) {
     sh.echo('Something went wrong with creating issue');
     sh.exit(1);
   }
 
-  sh.echo(`Created issue: ${issueLink}`);
-
-  const indexOfSlash = issueLink.lastIndexOf('/') + 1;
-  const issueNumber = issueLink.substring(indexOfSlash);
-
-  if (!utils.validateNumber(issueNumber)) {
-    sh.echo('Something went wrong with creating issue');
-    sh.exit(1);
-  }
+  sh.echo(`Created issue: #${issue.number}`);
 
   // Creating a custom branch
-  const branchName = utils.getBranchName(options.title, issueNumber);
+  const branchName = utils.getBranchName(options.title, issue.number);
 
   sh.echo(`Creating branch "${branchName}" based on "${options.from}"`);
 
@@ -235,19 +229,15 @@ const runCommands = (options) => {
   }
 
   // Adding description to the issue
-  const branchLink = sh
-    .exec('hub browse -u | grep -F ""')
-    .trimEndline()
-    .replace(/[a-z0-9-]+$/, branchName);
+  const branchLink = await utils.getBranchLink(branchName);
   const description = `Associated branch: [${branchName}](${branchLink})`;
-  sh.exec(
-    `hub issue update "${issueNumber}" -m "${options.title}" -m "${description}"`,
-  );
+
+  await api.updateIssue(issue.id, description);
 
   sh.exit(0);
 };
 
-const runOpen = (open) => {
+const runOpen = async (open) => {
   sh.echo(
     `Checking out branch "${open.branch}" associated with issue #${open.number}`,
   );
@@ -284,12 +274,13 @@ const runOpen = (open) => {
   }
 
   sh.echo(`Assigning issue #${open.number} to you`);
-  sh.exec(`hub issue update ${open.number} -a ${utils.getUser()}`);
+  const user = await utils.getUser();
+  await api.updateIssue(open.id, undefined, user.id);
 
   sh.exit(0);
 };
 
-const issue = (args) => {
+const issue = async (args) => {
   runCommands(parseArgs(args));
 };
 
