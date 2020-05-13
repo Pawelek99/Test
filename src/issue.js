@@ -288,7 +288,7 @@ const runOpen = async (open) => {
 };
 
 const issue = async (args) => {
-  // await runCommands(await parseArgs(args));
+  await runCommands(await parseArgs(args));
 };
 
 module.exports = issue;
