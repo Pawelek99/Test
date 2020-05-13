@@ -239,7 +239,8 @@ const runCommands = async (options) => {
   const branchLink = await utils.getBranchLink(branchName);
   const description = `Associated branch: [${branchName}](${branchLink})`;
 
-  await api.updateIssue(issue.id, description);
+  const result = await api.updateIssue(issue.id, description);
+  console.log(result);
 
   sh.exit(0);
 };

@@ -17,10 +17,12 @@ const mutation = async (mutation) => {
 }
 
 const query = async (query, isMutation) => {
+  const body = `{ "query": "${isMutation ? 'mutation' : ''} { ${query.replace(/\n| +/g, ' ').replace(/"/g, '\\"')} }" }`;
+  console.log(body);
   const res = await f(process.env.API_URL, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: `{ "query": "${isMutation ? 'mutation' : ''} { ${query.replace(/\n| +/g, ' ').replace(/"/g, '\\"')} }" }`,
+    body,
   });
   return await res.json();
 };
