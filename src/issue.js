@@ -223,7 +223,7 @@ const runCommands = async (options) => {
   if (!options.detached) {
     sh.echo('Checking out created branch');
 
-    const hasUncommitedChanges = sh.exec('git status -s').stdout;
+    const hasUncommitedChanges = sh.exec('git status -s').trimEndline() != '';
     if (hasUncommitedChanges) {
       sh.exec('git stash');
     }
@@ -289,7 +289,6 @@ const runOpen = async (open) => {
 
 const issue = async (args) => {
   // await runCommands(await parseArgs(args));
-  console.log(sh.exec('git status -s').trimEndline() != '');
 };
 
 module.exports = issue;
