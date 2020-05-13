@@ -281,7 +281,8 @@ const runOpen = async (open) => {
 };
 
 const issue = async (args) => {
-  runCommands(parseArgs(args));
+  await runCommands(await parseArgs(args));
+  // console.log(await api.createIssue('tytul', ''));
 };
 
 module.exports = issue;

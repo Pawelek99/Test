@@ -1,5 +1,6 @@
 require('dotenv').config();
 const f = require('node-fetch');
+const sh = require('shelljs');
 
 Object.prototype.fromPath = function (...path) {
   return path.reduce((xs, x) => (xs && xs[x]) ? xs[x] : null, this);
@@ -12,19 +13,14 @@ const getAuthHeaders = () => {
 };
 
 const mutation = async (mutation) => {
-  const res = await f(process.env.API_URL, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: `{ "mutation": "{ ${mutation.replace(/\n| +/g, ' ').replace(/"/g, '\\"')} }" }`,
-  });
-  return await res.json();
+  return query(mutation, true);
 }
 
-const query = async (query) => {
+const query = async (query, isMutation) => {
   const res = await f(process.env.API_URL, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: `{ "query": "{ ${query.replace(/\n| +/g, ' ').replace(/"/g, '\\"')} }" }`,
+    body: `{ "query": "${isMutation ? 'mutation' : ''} { ${query.replace(/\n| +/g, ' ').replace(/"/g, '\\"')} }" }`,
   });
   return await res.json();
 };
@@ -32,7 +28,7 @@ const query = async (query) => {
 const queryRepo = async (repoQuery) => {
   const repoName = sh.exec('basename $(git remote get-url origin) .git').trimEndline();
   const user = await methods.getUser();
-  return query(`repository(name: "${repoName}", owner: "${user.name}") { ${repoQuery} }`);
+  return query(`repository(name: "${repoName}", owner: "${user.login}") { ${repoQuery} }`);
 }
 
 const methods = {
@@ -43,7 +39,7 @@ const methods = {
 
   getUser: async () => {
     const user = await query(`viewer { id login }`);
-    return user.fromPath('data', 'viewer', 'login');
+    return user.fromPath('data', 'viewer');
   },
 
   getIssueTitle: async (issueNumber) => {
@@ -69,20 +65,23 @@ const methods = {
   createIssue: async (title, labels, assignee) => {
     const repo = await methods.getRepo();
     const labelsIds = [];
-    labels.split(',').forEach(label => {
+    console.log(labels);
+    await labels.split(',').asyncForEach(async (label) => {
       labelsIds.push((await methods.getLabel(label)).id);
     });
+    console.log(labelsIds);
     const issue = await mutation(`createIssue(input: {
-      repositoryId: "${repo.id}", title: "${title}", assigneeIds: "${assignee}", labelIds: "${labelsIds.join(',')}"
+      repositoryId: "${repo.id}", title: "${title}"${assignee ? `, assigneeIds: "${assignee}"` : ''}, labelIds: "${labelsIds.join(',')}"
     }) { issue { id url number } }`);
-    return issue.fromPath('data', 'issue');
+    console.log(issue);
+    return issue.fromPath('data', 'createIssue', 'issue');
   },
 
   updateIssue: async (id, body, assignee) => {
     const issue = await mutation(`updateIssue(input: {
       id: "${id}"${body ? `, body: "${body}"` : ''}${assignee ? `, assigneeIds: "${assignee}"` : ''}
     }) { issue { id url number } }`);
-    return issue.fromPath('data', 'issue');
+    return issue.fromPath('data', 'updateIssue', 'issue');
   },
 };
 
