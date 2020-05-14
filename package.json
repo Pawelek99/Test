@@ -1,0 +1,49 @@
+{
+  "name": "itg",
+  "version": "0.2.2",
+  "description": "Issue Tracker for Github",
+  "main": "bin.js",
+  "bin": "./bin.js",
+  "scripts": {
+    "format": "prettier --write '**/*.js'",
+    "format:check": "prettier --check '**/*.js'",
+    "test": "jest",
+    "prepublishOnly": "npm run format:check && npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pawelek99/itg.git"
+  },
+  "keywords": [
+    "issue-tracker",
+    "github",
+    "issues",
+    "itg"
+  ],
+  "author": "Paweł Chochura",
+  "license": "ISC",
+  "homepage": "https://github.com/Pawelek99/itg#readme",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "git-root-dir": "^1.0.2",
+    "node-fetch": "^2.6.0",
+    "read": "^1.0.7",
+    "shelljs": "^0.8.4"
+  },
+  "devDependencies": {
+    "prettier": "^2.0.5",
+    "jest": "^26.0.1"
+  },
+  "files": [
+    "bin.js",
+    "src/issue.js",
+    "src/pr.js",
+    "src/utils.js",
+    "README.md"
+  ],
+  "prettier": {
+    "trailingComma": "all",
+    "singleQuote": true,
+    "tabWidth": 2
+  }
+}

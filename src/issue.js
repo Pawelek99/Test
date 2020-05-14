@@ -1,6 +1,10 @@
 require('dotenv').config();
 const utils = require('./utils');
+const api = require('./api');
 const sh = require('shelljs');
+const os = require('os');
+
+sh.config.silent = true;
 
 const showHelp = () => {
   sh.echo(
@@ -58,7 +62,7 @@ const parseArgs = (args) => {
   return validateOptions(options);
 };
 
-const validateOptions = (tempOptions) => {
+const validateOptions = async (tempOptions) => {
   const options = {};
 
   // Validate 'open'
@@ -74,7 +78,7 @@ const validateOptions = (tempOptions) => {
       sh.exit(1);
     }
 
-    options.open = validateOpen(tempOptions.open);
+    options.open = await validateOpen(tempOptions.open);
 
     // Return now to avoid checking other options
     return options;
@@ -95,7 +99,7 @@ const validateOptions = (tempOptions) => {
       sh.exit(1);
     }
 
-    options.label = validateCustom(tempOptions.custom);
+    options.label = await validateCustom(tempOptions.custom);
   } else if (tempOptions.bug) {
     options.label = 'bug';
   } else {
@@ -105,13 +109,15 @@ const validateOptions = (tempOptions) => {
   // Validate 'from'
   if (tempOptions.hasOwnProperty('from')) {
     if (!tempOptions.from) {
-      sh.echo('You have to pass an issue number or "master" to "--from" option');
+      sh.echo(
+        'You have to pass an issue number or "master" to "--from" option',
+      );
       sh.exit(1);
     }
 
-    options.from = validateFrom(tempOptions.from);
+    options.from = await validateFrom(tempOptions.from);
   } else {
-    options.from = 'master';
+    options.from = utils.getCurrentBranchName();
   }
 
   // Validate 'detached'
@@ -122,35 +128,32 @@ const validateOptions = (tempOptions) => {
   return options;
 };
 
-const validateCustom = (custom) => {
+const validateCustom = async (custom) => {
   if (!custom) {
     sh.echo('You have to pass a label');
     sh.exit(1);
   }
 
   if (['bug', 'feature'].indexOf(custom) !== -1) {
-    sh.echo(`Warning!
+    sh.echo(
+      `Warning!
       Passing "bug" or "feature" to the "custom" option slows down the process. 
-      Try using "bug" option and keep in mind - "feature" label is the default.
+      Try using "--bug" option and keep in mind - "feature" label is the default.
     `.trimIndent(),
     );
   }
 
   // Download labels from Github repo
-  const labels = sh
-    .exec('hub issue labels | grep -F "\n"', { silent: true })
-    .split('\n');
+  const labels = (await api.getLabels()).map((label) => label.name);
 
   if (labels.indexOf(custom) === -1) {
-    sh.echo(
-      `You have to provide a label from: [${labels.join(', ').slice(0, -2)}]`,
-    );
+    sh.echo(`You have to provide a label from: [${labels.join(', ')}]`);
     sh.exit(1);
   }
   return custom;
 };
 
-const validateFrom = (from) => {
+const validateFrom = async (from) => {
   if (from === 'master') {
     return 'master';
   }
@@ -162,121 +165,134 @@ const validateFrom = (from) => {
     sh.exit(1);
   }
 
-  return getBranchNameFromNumber(from);
+  return utils.getBranchNameFromNumber(from);
 };
 
-const validateOpen = (open) => {
+const validateOpen = async (open) => {
   if (!utils.validateNumber(open)) {
     sh.echo('Parameter passed to "open" have to be an issue number');
     sh.exit(1);
   }
 
+  const issue = await api.getIssue(open);
+
   return {
-    branch: getBranchNameFromNumber(open),
-    number: open,
+    branch: utils.getBranchName(issue.title, issue.number),
+    number: issue.number,
+    id: issue.id,
   };
 };
 
-const getBranchNameFromNumber = (issueNumber) => {
-  const issueTitleCommand = sh.exec(
-    `hub issue show -f %t ${issueNumber} | grep -F ""`,
-    {
-      silent: true,
-    },
-  );
-
-  if (issueTitleCommand.code !== 0) {
-    sh.echo(
-      `Something went wrong with downloading issue (#${issueNumber}) title`,
-    );
-    sh.exit(1);
-  }
-
-  return getBranchName(issueTitleCommand.stdout, issueNumber);
-};
-
-const getBranchName = (issueTitle, issueNumber) => {
-  return `${utils.slugify(issueTitle)}-i${issueNumber}`;
-}
-
-const runCommands = (options) => {
+const runCommands = async (options) => {
   if (options.open) {
-    runOpen(options.open);
+    await runOpen(options.open);
+    sh.exit(0);
   }
 
   // Creating an issue
   sh.echo(
-    `Creating issue with name: ${options.title}, labeled: ${options.label}`,
+    `Creating issue with name: "${options.title}", labeled: "${options.label}"`,
   );
 
-  let assignee = '';
+  let assignee = undefined;
   if (!options.detached) {
     sh.echo('Assigning this issue to you');
 
-    assignee = `-a ${utils.getUser()}`;
+    const user = await api.getUser();
+    assignee = user.id;
   }
 
-  const issueLink = sh.exec(
-    `hub issue create -l '${options.label}' -m '${options.title}' ${assignee} | grep -F ""`,
-    { silent: true }
-  ).stdout.trimEndline();
+  const issue = await api.createIssue(options.title, options.label, assignee);
 
-  if (!issueLink) {
+  if (!issue) {
     sh.echo('Something went wrong with creating issue');
     sh.exit(1);
   }
 
-  const indexOfSlash = issueLink.lastIndexOf('/') + 1;
-  const issueNumber = issueLink.substring(indexOfSlash);
-
-  if (!utils.validateNumber(issueNumber)) {
-    sh.echo('Something went wrong with creating issue');
-    sh.exit(1);
-  }
+  sh.echo(`Created issue: #${issue.number}`);
 
   // Creating a custom branch
-  sh.echo('Checking out your new branch');
-  const branchName = getBranchName(options.title, issueNumber);
-  sh.exec(`git push origin origin/${options.from}:refs/heads/${branchName}`, { silent: true });
+  const branchName = utils.getBranchName(options.title, issue.number);
+
+  sh.echo(`Creating branch "${branchName}" based on "${options.from}"`);
+
+  sh.exec(`git push origin origin/${options.from}:refs/heads/${branchName}`);
 
   if (!options.detached) {
-    sh.exec('git stash', { silent: true });
-    sh.exec(`git checkout ${branchName}`, { silent: true });
-    sh.exec('git stash pop', { silent: true });
+    sh.echo('Checking out created branch');
+
+    const hasUncommitedChanges = sh.exec('git status -s').trimEndline() != '';
+    if (hasUncommitedChanges) {
+      sh.exec('git stash');
+    }
+
+    sh.exec(`git checkout ${branchName}`);
+
+    if (hasUncommitedChanges) {
+      sh.exec('git stash pop');
+    }
   }
 
   // Adding description to the issue
-  const branchLink = sh.exec('hub browse -u | grep -F ""').replace(/[a-z0-9-]+$/, branchName);
+  const branchLink = await utils.getBranchLink(branchName);
   const description = `Associated branch: [${branchName}](${branchLink})`;
-  sh.exec(`hub issue update "${issueNumber}" -m "${options.title}" -m "${description}"`);
+
+  const result = await api.updateIssue(issue.id, description);
+
+  if (!result) {
+    sh.echo('Something went wrong with setting issue description');
+    sh.exit(1);
+  }
 
   sh.exit(0);
 };
 
-const runOpen = (open) => {
-  sh.echo('Checking out branch associated with the selected issue');
+const runOpen = async (open) => {
+  sh.echo(
+    `Checking out branch "${open.branch}" associated with issue #${open.number}`,
+  );
 
   // Check if remote branch with this name exist
-  if (
-    sh.exec(`git ls-remote origin ${open.branch}`, { silent: true }).code !== 0
-  ) {
+  if (sh.exec(`git ls-remote origin ${open.branch}`).code !== 0) {
     sh.echo(`Remote branch "${open.branch}" does not exist`);
     sh.exit(1);
   }
 
-  // Checkout the branch
-  sh.exec(`git checkout --track origin/${open.branch}`, { silent: true });
+  // Check if local branch with this name exist
+  if (
+    sh.exec(`git show-ref --verify --quiet refs/heads/${open.branch}`).code ===
+    0
+  ) {
+    // Checkout local branch
+    if (sh.exec(`git checkout ${open.branch}`).code !== 0) {
+      sh.echo(
+        'We had a problem with checking out the branch. Maybe stash changes before trying again?',
+      );
+      sh.exit(1);
+    }
 
-  sh.echo('Assigning this issue to you');
-  sh.exec(`hub issue update ${open.number} -a ${utils.getUser()}`, { silent: true });
+    // Pull changes from remote
+    sh.exec(`git pull origin ${open.branch}`);
+  } else {
+    // Checkout and track remote branch
+    if (sh.exec(`git checkout --track origin/${open.branch}`).code !== 0) {
+      sh.echo(
+        'We had a problem with checking out the branch. Maybe stash changes before trying again?',
+      );
+      sh.exit(1);
+    }
+  }
+
+  sh.echo(`Assigning issue #${open.number} to you`);
+  const user = await api.getUser();
+  await api.updateIssue(open.id, undefined, user.id);
 
   sh.exit(0);
 };
 
-const issue = (args) => {
-  const options = parseArgs(args);
-  runCommands(options);
-  sh.echo(options);
+const issue = async (args) => {
+  // await runCommands(await parseArgs(args));
+  console.log(await api.getRepo());
 };
 
 module.exports = issue;
