@@ -2,6 +2,7 @@ require('dotenv').config();
 const utils = require('./utils');
 const api = require('./api');
 const sh = require('shelljs');
+const os = require('os');
 
 sh.config.silent = true;
 
@@ -290,7 +291,8 @@ const runOpen = async (open) => {
 };
 
 const issue = async (args) => {
-  await runCommands(await parseArgs(args));
+  // await runCommands(await parseArgs(args));
+  console.log(await api.getRepo());
 };
 
 module.exports = issue;
