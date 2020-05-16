@@ -1,6 +1,6 @@
 require('dotenv').config();
 const utils = require('./utils');
-const api = require('./api');
+const api = require('./api/api');
 const sh = require('shelljs');
 const os = require('os');
 

@@ -1,104 +1,15 @@
 require('dotenv').config();
-const fs = require('fs');
-const os = require('os');
-const f = require('node-fetch');
+const graphql = require('./graphql');
 const sh = require('shelljs');
-const read = require('read');
-const cache = require('./cache');
-
-Object.prototype.fromPath = function (...path) {
-  return path.reduce((xs, x) => (xs && xs[x] ? xs[x] : null), this);
-};
-
-const askForCredentials = async () => {
-  return new Promise((resolve, _) => {
-    read({ prompt: 'Username: ', silent: false }, (error, username) => {
-      if (error) {
-        sh.echo('You have to login into your Github account to continue');
-        sh.exit(1);
-      }
-
-      read({ prompt: 'Password: ', silent: true }, (error, password) => {
-        if (error) {
-          sh.echo('Your password is never stored');
-          sh.exit(1);
-        }
-
-        resolve({
-          username,
-          password
-        });
-      });
-    });
-  });
-};
-
-const auth = async () => {
-  const { username, password } = await askForCredentials();
-
-  const res = await f(`${process.env.API_URL}/authorizations`, {
-    method: 'POST',
-    headers: {
-      Authorization: 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64')
-    },
-    body: JSON.stringify({
-      scopes: ['repo', 'user'],
-      note: 'Token for "itg"',
-    }),
-  });
-  return res.json();
-};
-
-const getToken = () => {
-  const path = `${os.homedir()}/.itg/.secret`;
-
-  if (fs.existsSync(path)) {
-    return Buffer.from(fs.readFileSync(path).toLocaleString(), 'base64').toString();
-  }
-};
-
-const setToken = async (token) => {
-  const path = `${os.homedir()}/.itg/.secret`;
-
-  fs.writeFileSync(path, Buffer.from(token).toString('base64'));
-}
-
-const getAuthHeaders = async () => {
-  let token = process.env.TOKEN || getToken();
-
-  // Ask for creating authorization token if it does not exist
-  if (!token) {
-    token = (await auth()).token;
-    setToken(token);
-  }
-
-  return {
-    Authorization: `bearer ${token}`,
-  };
-};
-
-const mutation = async (mutation) => {
-  return query(mutation, true);
-};
-
-const query = async (query, isMutation) => {
-  const res = await f(`${process.env.API_URL}/graphql`, {
-    method: 'POST',
-    headers: await getAuthHeaders(),
-    body: `{ "query": "${isMutation ? 'mutation' : ''} { ${query
-      .replace(/\n| +/g, ' ')
-      .replace(/"/g, '\\"')} }" }`,
-  });
-  return await res.json();
-};
+const cache = require('../cache');
 
 const queryRepo = async (repoQuery) => {
-  const repoName = sh
-    .exec('basename $(git remote get-url origin) .git')
-    .trimEndline();
-  const user = await methods.getUser();
-  return query(
-    `repository(name: "${repoName}", owner: "${user.login}") { ${repoQuery} }`,
+  const repoUrl = sh.exec('git remote get-url origin').trimEndline();
+  const repo = (/.*github.com[:\/](.*)\/(.*).git/gi).exec(repoUrl);
+  const repoOwner = repo[1];
+  const repoName = repo[2];
+  return graphql.query(
+    `repository(name: "${repoName}", owner: "${repoOwner}") { ${repoQuery} }`,
   );
 };
 
@@ -119,14 +30,14 @@ const methods = {
       return await cache.get('USER');
     }
 
-    let user = await query(`viewer { id login }`);
+    let user = await graphql.query(`viewer { id login }`);
     user = user.fromPath('data', 'viewer');
 
     return cache.set('USER', user);
   },
 
   getIssue: async (issueNumber, withLabels) => {
-    if (!withLabels && await cache.has(`ISSUE_${issueNumber}`)) {
+    if (!withLabels && (await cache.has(`ISSUE_${issueNumber}`))) {
       return cache.get(`ISSUE_${issueNumber}`);
     }
 
@@ -168,7 +79,7 @@ const methods = {
 
     let labels = await queryRepo(`labels(first: 50) { nodes { id name } }`);
     labels = labels.fromPath('data', 'repository', 'labels', 'nodes');
-    
+
     return cache.set('LABELS', labels);
   },
 
@@ -192,7 +103,7 @@ const methods = {
     await labels.split(',').asyncForEach(async (label) => {
       labelsIds.push((await methods.getLabel(label)).id);
     });
-    const issue = await mutation(`createIssue(input: {
+    const issue = await graphql.mutation(`createIssue(input: {
       repositoryId: "${repo.id}", title: "${title}"${
       assignee ? `, assigneeIds: "${assignee}"` : ''
     }, labelIds: "${labelsIds.join(',')}"
@@ -201,7 +112,7 @@ const methods = {
   },
 
   updateIssue: async (id, body, assignee) => {
-    const issue = await mutation(`updateIssue(input: {
+    const issue = await graphql.mutation(`updateIssue(input: {
       id: "${id}"${body ? `, body: "${body}"` : ''}${
       assignee ? `, assigneeIds: "${assignee}"` : ''
     }
@@ -211,7 +122,7 @@ const methods = {
 
   createPullRequest: async (issue, options) => {
     const repo = await methods.getRepo();
-    const pr = await mutation(`createPullRequest(input: {
+    const pr = await graphql.mutation(`createPullRequest(input: {
       repositoryId: "${repo.id}", baseRefName: "${options.to}", headRefName: "${
       options.from
     }",
@@ -227,14 +138,14 @@ const methods = {
     await labels.asyncForEach(async (label) => {
       labelsIds.push((await methods.getLabel(label.name)).id);
     });
-    const pr = await mutation(`updatePullRequest(input: {
+    const pr = await graphql.mutation(`updatePullRequest(input: {
       pullRequestId: "${id}", labelIds: "${labelsIds.join(',')}"
     }) { pullRequest { id number url } }`);
     return pr.fromPath('data', 'updatePullRequest', 'pullRequest');
   },
 
   markPRAsReady: async (id) => {
-    const pr = await mutation(`markPullRequestReadyForReview(input: {
+    const pr = await graphql.mutation(`markPullRequestReadyForReview(input: {
       pullRequestId: "${id}"
     }) { pullRequest { id number url } }`);
     return pr.fromPath('data', 'markPullRequestReadyForReview', 'pullRequest');

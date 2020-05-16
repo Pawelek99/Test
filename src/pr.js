@@ -1,4 +1,4 @@
-const api = require('./api');
+const api = require('./api/api');
 const sh = require('shelljs');
 const utils = require('./utils');
 

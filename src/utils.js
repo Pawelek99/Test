@@ -1,10 +1,10 @@
 const sh = require('shelljs');
-const api = require('./api');
+const api = require('./api/api');
 
 sh.config.silent = true;
 
 String.prototype.trimIndent = function () {
-  return this.replace(/\n */g, '\n');
+  return this.replace(/\n(\t)*/g, '\n');
 };
 
 String.prototype.trimEndline = function () {
@@ -29,11 +29,6 @@ const slugify = (input) => {
 
 const validateNumber = (number) => {
   return number.match(/^\d+$/);
-};
-
-const printError = (text) => {
-  // Example
-  // sh.echo('-e', '\033[31mYou have to pass an issue number to "open" option\033[0m');
 };
 
 const getBranchNameFromNumber = async (issueNumber) => {
