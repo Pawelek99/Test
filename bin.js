@@ -83,9 +83,7 @@ const run = async () => {
 		sh.exit(0);
 	}
 
-	if (
-		(args[0] || '').indexOf('"') !== -1 || config.isWarningDsiabled()
-	) {
+	if ((args[0] || '').indexOf('"') !== -1 || config.isWarningDsiabled()) {
 		await issue(args);
 		sh.exit(0);
 	}

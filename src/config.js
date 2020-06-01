@@ -4,11 +4,11 @@ const config = {};
 let loaded = false;
 
 const loadConfig = () => {
-    if (loaded) {
-        return;
-    }
+	if (loaded) {
+		return;
+	}
 
-    const path = `${os.homedir()}/.itg/config.json`;
+	const path = `${os.homedir()}/.itg/config.json`;
 
 	if (fs.existsSync(path)) {
 		Object.assign(config, JSON.parse(fs.readFileSync(path).toLocaleString()));
@@ -26,21 +26,20 @@ const saveConfig = () => {
 };
 
 const isWarningDsiabled = () => {
-    loadConfig();
-    console.log(config);
+	loadConfig();
 
-    return config.warningDisabled;
+	return config.warningDisabled;
 };
 
 const setWarningDisabled = (disabled = true) => {
-    loadConfig();
+	loadConfig();
 
-    config.warningDisabled = disabled;
-    
-    saveConfig();
+	config.warningDisabled = disabled;
+
+	saveConfig();
 };
 
 module.exports = {
-    isWarningDsiabled,
-    setWarningDisabled,
+	isWarningDsiabled,
+	setWarningDisabled,
 };

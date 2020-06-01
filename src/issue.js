@@ -57,7 +57,7 @@ const parseArgs = (args) => {
 			// Skip checking 'open' parameter
 			i++;
 		} else if (['close'].indexOf(args[i]) !== -1) {
-			options.open = args[i + 1];
+			options.close = args[i + 1];
 
 			// Skip checking 'close' parameter
 			i++;
@@ -201,8 +201,10 @@ const validateClose = async (close) => {
 		return "Closing issue. It won't be done.";
 	}
 
-	return close === 'done' || !close ? 'Closing issue. It has been done already.' : close;
-}
+	return close === 'done' || !close
+		? 'Closing issue. It has been done already.'
+		: close;
+};
 
 const runCommands = async (options) => {
 	if (options.open) {
@@ -318,16 +320,25 @@ const runOpen = async (open) => {
 
 const runClose = async (close) => {
 	const issueNumber = utils.getCurrentIssueNumber();
-	sh.echo(`Closing issue #${issueNumber}; reason: ${close}`);
-	
-	const issue = api.getIssue(issueNumber);
+	sh.echo(`Closing issue #${issueNumber}; reason: "${close}"`);
+
+	const issue = await api.getIssue(issueNumber);
 	await api.closeIssue(issue.id, close);
+
+	const hasUncommitedChanges = sh.exec('git status -s').trimEndline() != '';
+	if (hasUncommitedChanges) {
+		sh.exec('git stash');
+	}
 
 	sh.echo('Checking out "master" branch');
 	sh.exec('git checkout master');
 
 	sh.echo('Pulling changes from "origin master" branch');
 	sh.exec('git pull origin master');
+
+	if (hasUncommitedChanges) {
+		sh.exec('git stash pop');
+	}
 
 	sh.exit(0);
 };

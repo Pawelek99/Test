@@ -119,19 +119,23 @@ const methods = {
 		const issue = await graphql.mutation(`updateIssue(input: {
       id: "${id}"${body ? `, body: "${body}"` : ''}${
 			assignee ? `, assigneeIds: "${assignee}"` : ''
-		}
+		}, state: OPEN
     }) { issue { id url number } }`);
 		return issue.fromPath('data', 'updateIssue', 'issue');
 	},
 
 	closeIssue: async (id, reason) => {
-		await graphql.mutation(`closeIssue(input: { issueId: "${id}" }) { issue { id url number } }`);
+		await graphql.mutation(
+			`closeIssue(input: { issueId: "${id}" }) { issue { id url number } }`,
+		);
 
-		return this.commentIssue(id, reason);
+		return methods.commentIssue(id, reason);
 	},
-	
+
 	commentIssue: async (id, comment) => {
-		const issue = await graphql.mutation(`addComment(input: { subjectId: "${id}", body: "${comment}" }) { commentEdge { node { issue { id url number } } } }`);
+		const issue = await graphql.mutation(
+			`addComment(input: { subjectId: "${id}", body: "${comment}" }) { commentEdge { node { issue { id url number } } } }`,
+		);
 		return issue.fromPath('data', 'closeIssue', 'issue');
 	},
 
@@ -148,13 +152,14 @@ const methods = {
 		return pr.fromPath('data', 'createPullRequest', 'pullRequest');
 	},
 
-	updatePullRequest: async (id, labels) => {
+	updatePullRequest: async (id, labels, assignee) => {
 		const labelsIds = [];
 		await labels.asyncForEach(async (label) => {
 			labelsIds.push((await methods.getLabel(label.name)).id);
 		});
 		const pr = await graphql.mutation(`updatePullRequest(input: {
-      pullRequestId: "${id}", labelIds: "${labelsIds.join(',')}"
+	  pullRequestId: "${id}", labelIds: "${labelsIds.join(',')}",
+	  assigneeIds: "${assignee}"
     }) { pullRequest { id number url } }`);
 		return pr.fromPath('data', 'updatePullRequest', 'pullRequest');
 	},
