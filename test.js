@@ -130,16 +130,15 @@ const completeShifts = (input) => {
 
 			let remainder = splitIntoRemainders(hoursCount, output[i].hoursLeft)[0];
 
-			for (let day in output[i][startMonth]) {
-				let log = '';
-				const index = remainder.findIndex((entry) => {
-					log += Object.keys(entry)[0] + ', ';
-					return Object.keys(entry)[0] == output[i][startMonth][day];
-				});
-				if (index !== -1) {
-					output[i][startMonth][day] +=
-						remainder[index][output[i][startMonth][day]];
-					remainder.splice(index, 1);
+			for (let obj of remainder) {
+				const indexes = [];
+				const hour = parseInt(Object.keys(obj)[0]);
+				Object.entries(output[i][startMonth]).forEach(
+					(day) => day[1] === hour && indexes.push(day[0]),
+				);
+				if (indexes.length > 0) {
+					const index = indexes[rand(indexes.length - 1)];
+					output[i][startMonth][index] += parseInt(Object.values(obj)[0]);
 				}
 			}
 		}
@@ -152,10 +151,10 @@ const sortShifts = (input) => {
 	return output;
 };
 
-const shifts = sortShifts(completeShifts(computeShifts()));
+const shifts = completeShifts(computeShifts());
 
 for (; numberOfMonths > 0; numberOfMonths--, startMonth++) {
-	const data = [['Suma']];
+	const data = [[12, 8, 6, 'Suma']];
 	for (let day = getMonthDays(2020, startMonth); day > 0; day--) {
 		data[0].push(day);
 	}
@@ -163,20 +162,24 @@ for (; numberOfMonths > 0; numberOfMonths--, startMonth++) {
 	data[0].reverse();
 
 	const sums = {};
+	const hoursSums = { 6: 0, 8: 0, 12: 0 };
 
 	for (let i = 0; i < shifts.length; i++) {
+		const hoursCount = { 6: 0, 8: 0, 12: 0 };
 		const temp = [];
 		let hours = 0;
 		for (let day = getMonthDays(2020, startMonth); day > 0; day--) {
 			temp.push(shifts[i][startMonth][day] || '');
 			hours += shifts[i][startMonth][day] || 0;
 			sums[day] = (sums[day] || 0) + (shifts[i][startMonth][day] || 0);
+			shifts[i][startMonth][day] && hoursCount[shifts[i][startMonth][day]]++;
+			shifts[i][startMonth][day] && hoursSums[shifts[i][startMonth][day]]++;
 		}
 		temp.push(shifts[i].name);
-		data.push([...temp.reverse(), hours]);
+		data.push([...temp.reverse(), hours, ...Object.values(hoursCount)]);
 	}
 
-	data.push(['', ...Object.values(sums), '']);
+	data.push(['', ...Object.values(sums), '', ...Object.values(hoursSums)]);
 
 	console.log(
 		table.table(data, {
